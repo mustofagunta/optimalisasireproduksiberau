@@ -5,9 +5,10 @@ import { localDB } from "../firebase";
 
 interface PengaturanPenggunaProps {
   currentUser: any;
+  onCurrentUserUpdate?: (user: any) => void;
 }
 
-export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaProps) {
+export default function PengaturanPengguna({ currentUser, onCurrentUserUpdate }: PengaturanPenggunaProps) {
   const [usersList, setUsersList] = useState<RegisteredUser[]>([]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +30,15 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
 
   useEffect(() => {
     loadUsersList();
-  }, []);
+    if (currentUser && currentUser.role === "petugas") {
+      setUsername(currentUser.username || "");
+      setPassword(currentUser.password || "");
+      setNamaPetugas(currentUser.namaPetugas || "");
+      setNikPetugas(currentUser.nikPetugas === "-" ? "" : currentUser.nikPetugas || "");
+      setNomorTelponPetugas(currentUser.nomorTelponPetugas === "-" ? "" : currentUser.nomorTelponPetugas || "");
+      setRole("petugas");
+    }
+  }, [currentUser]);
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +50,42 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
       return;
     }
 
-    // Verify duplication
+    if (currentUser.role !== "adminkab") {
+      // Self edit flow for petugas Lapangan
+      const duplicate = usersList.some((usr) => {
+        return usr.id !== currentUser.id && usr.username.toLowerCase() === username.trim().toLowerCase();
+      });
+
+      if (duplicate) {
+        setErrorText("Username '" + username + "' sudah digunakan oleh petugas lain!");
+        return;
+      }
+
+      const updatedUser: RegisteredUser = {
+        ...currentUser,
+        username: username.trim(),
+        password: password,
+        namaPetugas: namaPetugas.trim(),
+        nikPetugas: nikPetugas.trim() || "-",
+        nomorTelponPetugas: nomorTelponPetugas.trim() || "-",
+      };
+
+      const updatedList = usersList.map((usr) => {
+        if (usr.id === currentUser.id) return updatedUser;
+        return usr;
+      });
+
+      localDB.set("users", updatedList);
+      setNotif("Sukses memperbarui akun pribadi Anda!");
+      
+      if (onCurrentUserUpdate) {
+        onCurrentUserUpdate(updatedUser);
+      }
+      loadUsersList();
+      return;
+    }
+
+    // Verify duplication (For Admin Kabupaten flow)
     const duplicate = usersList.some((usr) => {
       if (editingUser && usr.id === editingUser.id) return false;
       return usr.username.toLowerCase() === username.trim().toLowerCase();
@@ -56,7 +100,7 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
       // Update logic
       const updatedList = usersList.map((usr) => {
         if (usr.id === editingUser.id) {
-          return {
+          const updated = {
             ...usr,
             username: username.trim(),
             password: password,
@@ -65,6 +109,10 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
             nomorTelponPetugas: nomorTelponPetugas.trim() || "-",
             role,
           };
+          if (usr.id === currentUser.id && onCurrentUserUpdate) {
+            onCurrentUserUpdate(updated);
+          }
+          return updated;
         }
         return usr;
       });
@@ -259,25 +307,32 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
 
       {/* Col 3: Add/Edit User Form */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 self-start">
-        {editingUser ? (
-          <div className="flex items-center justify-between text-amber-800 font-bold border-b pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <Edit2 className="w-5 h-5 text-amber-600" />
-              <span className="text-sm">Edit Akun Petugas</span>
+        {currentUser.role === "adminkab" ? (
+          editingUser ? (
+            <div className="flex items-center justify-between text-amber-800 font-bold border-b pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-amber-600" />
+                <span className="text-sm">Edit Akun Petugas (Edit Username & Password)</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+                title="Batal Edit"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
-              title="Batal Edit"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2 text-emerald-800 font-bold border-b pb-3 mb-4">
+              <UserPlus className="w-5 h-5 text-emerald-600" />
+              <span className="text-sm">Tambah Petugas Baru</span>
+            </div>
+          )
         ) : (
-          <div className="flex items-center gap-2 text-emerald-800 font-bold border-b pb-3 mb-4">
-            <UserPlus className="w-5 h-5 text-emerald-600" />
-            <span className="text-sm">Tambah Petugas Baru</span>
+          <div className="flex items-center gap-2 text-indigo-800 font-bold border-b pb-3 mb-4">
+            <Edit2 className="w-5 h-5 text-indigo-600 animate-pulse" />
+            <span className="text-sm">Edit Akun Pribadi (Edit Username & Password)</span>
           </div>
         )}
 
@@ -297,10 +352,11 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
               id="admin_add_nama"
               type="text"
               required
+              disabled={currentUser.role !== "adminkab"}
               placeholder="Sesuai KTP petugas"
               value={namaPetugas}
               onChange={(e) => setNamaPetugas(e.target.value)}
-              className="w-full text-xs py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              className="w-full text-xs py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white disabled:bg-slate-55 disabled:text-slate-500"
             />
           </div>
 
@@ -312,20 +368,22 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
               id="admin_add_nik"
               type="text"
               maxLength={16}
+              disabled={currentUser.role !== "adminkab"}
               placeholder="16-digit nomor NIK"
               value={nikPetugas}
               onChange={(e) => setNikPetugas(e.target.value.replace(/\D/g, ""))}
-              className="w-full text-xs py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              className="w-full text-xs py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white disabled:bg-slate-55 disabled:text-slate-500"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
-              No HP / WhatsApp
+              No HP / WhatsApp *
             </label>
             <input
               id="admin_add_phone"
               type="tel"
+              required
               placeholder="Contoh: 081234567"
               value={nomorTelponPetugas}
               onChange={(e) => setNomorTelponPetugas(e.target.value.replace(/\D/g, ""))}
@@ -340,8 +398,9 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
             <select
               id="admin_add_role"
               value={role}
+              disabled={currentUser.role !== "adminkab"}
               onChange={(e) => setRole(e.target.value as any)}
-              className="w-full text-xs py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              className="w-full text-xs py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white disabled:bg-slate-55 disabled:text-slate-500"
             >
               <option value="petugas">Petugas Lapangan (Petugas)</option>
               {currentUser.role === "adminkab" && (
@@ -353,7 +412,11 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
           <div className="border-t pt-3 mt-4 space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
-                Username Login *
+                {editingUser 
+                  ? "Username Login (Edit Username) *" 
+                  : currentUser.role === "petugas" 
+                    ? "Username Login Saya (Edit Username) *" 
+                    : "Username Login *"}
               </label>
               <input
                 id="admin_add_username"
@@ -368,7 +431,11 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
-                Kata Sandi *
+                {editingUser 
+                  ? "Kata Sandi (Edit Password) *" 
+                  : currentUser.role === "petugas" 
+                    ? "Kata Sandi Baru Saya (Edit Password) *" 
+                    : "Kata Sandi *"}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
@@ -387,32 +454,43 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
             </div>
           </div>
 
-          {editingUser ? (
-            <div className="flex gap-2">
+          {currentUser.role === "adminkab" ? (
+            editingUser ? (
+              <div className="flex gap-2">
+                <button
+                  id="btn_admin_save_user"
+                  type="submit"
+                  className="flex-1 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  Simpan Perubahan
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
+            ) : (
               <button
                 id="btn_admin_save_user"
                 type="submit"
-                className="flex-1 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                Simpan Perubahan
+                Simpan Akun Petugas
               </button>
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-            </div>
+            )
           ) : (
             <button
               id="btn_admin_save_user"
               type="submit"
-              className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+              className="w-full py-2.5 px-4 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
             >
               <Save className="w-4 h-4" />
-              Simpan Akun Petugas
+              Simpan Perubahan Akun Saya
             </button>
           )}
         </form>

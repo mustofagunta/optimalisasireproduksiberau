@@ -606,7 +606,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <PengaturanPengguna currentUser={currentUser} />
+              <PengaturanPengguna currentUser={currentUser} onCurrentUserUpdate={setCurrentUser} />
             </motion.div>
           )}
         </AnimatePresence>
