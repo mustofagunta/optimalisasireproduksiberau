@@ -1,0 +1,6 @@
+{
+  "name": "Optimalisasi Reproduksi Ternak Berau",
+  "description": "Aplikasi penandaan ternak, inseminasi buatan (IB), pemeriksaan kebuntingan (PKB), dan kelahiran secara real-time pada Dinas Tanaman Pangan, Hortikultura dan Peternakan Kabupaten Berau.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

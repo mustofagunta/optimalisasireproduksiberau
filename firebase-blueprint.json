@@ -1,0 +1,174 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Officer or admin credentials in Dinas Tanaman Pangan, Hortikultura dan Peternakan Kabupaten Berau",
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Login username"
+        },
+        "password": {
+          "type": "string",
+          "description": "Login password"
+        },
+        "namaPetugas": {
+          "type": "string",
+          "description": "Full name of the officer"
+        },
+        "nikPetugas": {
+          "type": "string",
+          "description": "Identity number of the officer"
+        },
+        "nomorTelponPetugas": {
+          "type": "string",
+          "description": "Officer's phone number"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["adminkab", "petugas"],
+          "description": "User role: owner/adminkab or regular petugas"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["username", "password", "namaPetugas", "role"]
+    },
+    "Penandaan": {
+      "title": "Penandaan Ternak",
+      "description": "Livestock identification and eartag registration data",
+      "type": "object",
+      "properties": {
+        "namaPetugas": { "type": "string" },
+        "nikPetugas": { "type": "string" },
+        "nomorTelponPetugas": { "type": "string" },
+        "tanggalPenandaan": { "type": "string", "format": "date" },
+        "idEartagInduk": { "type": "string" },
+        "fotoEartagInduk": { "type": "string", "description": "Base64 image or direct URL" },
+        "tanggalLahirInduk": { "type": "string", "format": "date" },
+        "namaPeternak": { "type": "string" },
+        "nikPeternak": { "type": "string" },
+        "tujuanPemeliharaan": { "type": "string", "enum": ["Pembibitan", "Pengemukan", "Pembiakan"] },
+        "nomorTelponPeternak": { "type": "string" },
+        "propinsi": { "type": "string" },
+        "kabupaten": { "type": "string" },
+        "kecamatan": { "type": "string" },
+        "desa": { "type": "string" },
+        "rumpunTernak": { "type": "string" },
+        "jenisKelamin": { "type": "string", "enum": ["Jantan", "Betina"] },
+        "keterangan": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["namaPetugas", "tanggalPenandaan", "idEartagInduk", "namaPeternak", "kecamatan", "desa", "rumpunTernak"]
+    },
+    "Inseminasi": {
+      "title": "Inseminasi Buatan",
+      "description": "Artificial Insemination records for female livestock",
+      "type": "object",
+      "properties": {
+        "namaPetugas": { "type": "string" },
+        "nikPetugas": { "type": "string" },
+        "tanggalIb": { "type": "string", "format": "date" },
+        "idEartagInduk": { "type": "string" },
+        "rumpunInduk": { "type": "string" },
+        "ibKe": { "type": "string" },
+        "kodeProduksi": { "type": "string" },
+        "kodeJantan": { "type": "string" },
+        "rumpunPenjantan": { "type": "string" },
+        "produk": { "type": "string" },
+        "namaPeternak": { "type": "string" },
+        "nikPeternak": { "type": "string" },
+        "nomorTelponPeternak": { "type": "string" },
+        "propinsi": { "type": "string" },
+        "kabupaten": { "type": "string" },
+        "kecamatan": { "type": "string" },
+        "desa": { "type": "string" },
+        "statusTernak": { "type": "string", "enum": ["sudah Terdaftar di identik PKH", "Belum Terdaftar di identik PKH"] },
+        "keterangan": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["namaPetugas", "tanggalIb", "idEartagInduk", "namaPeternak", "kecamatan", "desa"]
+    },
+    "Kebuntingan": {
+      "title": "Pemeriksaan Kebuntingan",
+      "description": "Pregnancy check results (PKB) for female livestock",
+      "type": "object",
+      "properties": {
+        "namaPetugas": { "type": "string" },
+        "nikPetugas": { "type": "string" },
+        "tanggalPkb": { "type": "string", "format": "date" },
+        "idEartagInduk": { "type": "string" },
+        "rumpunInduk": { "type": "string" },
+        "umurTernak": { "type": "string" },
+        "kategoriTernak": { "type": "string" },
+        "jenisPerkawinan": { "type": "string", "enum": ["Inseminasi Buatan", "Alami"] },
+        "umurKebuntingan": { "type": "string", "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9"] },
+        "namaPeternak": { "type": "string" },
+        "nikPeternak": { "type": "string" },
+        "propinsi": { "type": "string" },
+        "kabupaten": { "type": "string" },
+        "kecamatan": { "type": "string" },
+        "desa": { "type": "string" },
+        "statusTernak": { "type": "string", "enum": ["sudah Terdaftar di identik PKH", "Belum Terdaftar di identik PKH"] },
+        "keterangan": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["namaPetugas", "tanggalPkb", "idEartagInduk", "namaPeternak", "kecamatan", "desa"]
+    },
+    "Kelahiran": {
+      "title": "Kelahiran Ternak",
+      "description": "Calving logs / child animal birth registration",
+      "type": "object",
+      "properties": {
+        "namaPetugas": { "type": "string" },
+        "nikPetugas": { "type": "string" },
+        "tanggalLahirAnak": { "type": "string", "format": "date" },
+        "idEartagInduk": { "type": "string" },
+        "rumpunInduk": { "type": "string" },
+        "kategoriTernak": { "type": "string" },
+        "programTernak": { "type": "string" },
+        "umurInduk": { "type": "string" },
+        "namaPeternak": { "type": "string" },
+        "nikPeternak": { "type": "string" },
+        "nomorTelponPeternak": { "type": "string" },
+        "propinsi": { "type": "string" },
+        "kabupaten": { "type": "string" },
+        "kecamatan": { "type": "string" },
+        "desa": { "type": "string" },
+        "jenisPerkawinan": { "type": "string", "enum": ["Inseminasi", "Alami", "Transfer Embrio"] },
+        "nomorEartagAnak": { "type": "string" },
+        "jenisKelaminAnak": { "type": "string", "enum": ["Jantan", "Betina"] },
+        "jenisRumpunAnak": { "type": "string" },
+        "statusTernak": { "type": "string", "enum": ["sudah Terdaftar di identik PKH", "Belum Terdaftar di identik PKH"] },
+        "keterangan": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["namaPetugas", "tanggalLahirAnak", "idEartagInduk", "namaPeternak", "kecamatan", "desa", "nomorEartagAnak", "jenisKelaminAnak"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User accounts for the officers"
+    },
+    "/penandaan/{recordId}": {
+      "schema": "Penandaan",
+      "description": "Penandaan Ternak entries"
+    },
+    "/inseminasi/{recordId}": {
+      "schema": "Inseminasi",
+      "description": "Inseminasi Buatan entries"
+    },
+    "/kebuntingan/{recordId}": {
+      "schema": "Kebuntingan",
+      "description": "Pemeriksaan Kebuntingan entries"
+    },
+    "/kelahiran/{recordId}": {
+      "schema": "Kelahiran",
+      "description": "Kelahiran Ternak entries"
+    }
+  }
+}
