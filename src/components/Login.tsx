@@ -260,7 +260,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     className="w-full text-sm py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all bg-white"
                   >
                     <option value="petugas">Petugas Lapangan (Petugas)</option>
-                    <option value="adminkab">Admin Kabupaten (Owner/Adminkab)</option>
                   </select>
                 </div>
               </motion.div>

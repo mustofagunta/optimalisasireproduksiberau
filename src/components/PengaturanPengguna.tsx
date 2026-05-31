@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserPlus, Users, Trash, Shield, ShieldAlert, Key, Save, CheckCircle } from "lucide-react";
+import { UserPlus, Users, Trash, Shield, ShieldAlert, Key, Save, CheckCircle, Edit2, X } from "lucide-react";
 import { RegisteredUser } from "../types";
 import { localDB } from "../firebase";
 
@@ -15,6 +15,9 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
   const [nikPetugas, setNikPetugas] = useState("");
   const [nomorTelponPetugas, setNomorTelponPetugas] = useState("");
   const [role, setRole] = useState<"petugas" | "adminkab">("petugas");
+  
+  // State for active edit operation
+  const [editingUser, setEditingUser] = useState<RegisteredUser | null>(null);
 
   const [notif, setNotif] = useState("");
   const [errorText, setErrorText] = useState("");
@@ -34,30 +37,58 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
     setNotif("");
 
     if (!username || !password || !namaPetugas) {
-      setErrorText("Nama, username, dan kata sandi wajib didaftarkan!");
+      setErrorText("Nama, username, dan kata sandi wajib diisi!");
       return;
     }
 
     // Verify duplication
-    const duplicate = usersList.some((usr) => usr.username.toLowerCase() === username.trim().toLowerCase());
+    const duplicate = usersList.some((usr) => {
+      if (editingUser && usr.id === editingUser.id) return false;
+      return usr.username.toLowerCase() === username.trim().toLowerCase();
+    });
+
     if (duplicate) {
       setErrorText("Username '" + username + "' sudah digunakan oleh petugas lain!");
       return;
     }
 
-    const newUser: RegisteredUser = {
-      id: `user_admin_${Date.now()}`,
-      username: username.trim(),
-      password: password,
-      namaPetugas: namaPetugas.trim(),
-      nikPetugas: nikPetugas.trim() || "-",
-      nomorTelponPetugas: nomorTelponPetugas.trim() || "-",
-      role,
-      createdAt: new Date().toISOString()
-    };
+    if (editingUser) {
+      // Update logic
+      const updatedList = usersList.map((usr) => {
+        if (usr.id === editingUser.id) {
+          return {
+            ...usr,
+            username: username.trim(),
+            password: password,
+            namaPetugas: namaPetugas.trim(),
+            nikPetugas: nikPetugas.trim() || "-",
+            nomorTelponPetugas: nomorTelponPetugas.trim() || "-",
+            role,
+          };
+        }
+        return usr;
+      });
 
-    localDB.insertOne<RegisteredUser>("users", newUser);
-    setNotif(`Sukses mendaftarkan petugas baru "${namaPetugas}"!`);
+      localDB.set("users", updatedList);
+      setNotif(`Sukses memperbarui akun petugas "${namaPetugas}"!`);
+      setEditingUser(null);
+    } else {
+      // Create logic
+      const newUser: RegisteredUser = {
+        id: `user_admin_${Date.now()}`,
+        username: username.trim(),
+        password: password,
+        namaPetugas: namaPetugas.trim(),
+        nikPetugas: nikPetugas.trim() || "-",
+        nomorTelponPetugas: nomorTelponPetugas.trim() || "-",
+        role,
+        createdAt: new Date().toISOString()
+      };
+
+      localDB.insertOne<RegisteredUser>("users", newUser);
+      setNotif(`Sukses mendaftarkan petugas baru "${namaPetugas}"!`);
+    }
+
     loadUsersList();
 
     // Reset fields
@@ -69,7 +100,39 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
     setRole("petugas");
   };
 
+  const startEditUser = (user: RegisteredUser) => {
+    if (currentUser.role !== "adminkab") {
+      alert("Hanya Admin Kabupaten yang diizinkan mengedit akun!");
+      return;
+    }
+    setEditingUser(user);
+    setNamaPetugas(user.namaPetugas);
+    setNikPetugas(user.nikPetugas === "-" ? "" : user.nikPetugas || "");
+    setNomorTelponPetugas(user.nomorTelponPetugas === "-" ? "" : user.nomorTelponPetugas || "");
+    setRole(user.role);
+    setUsername(user.username);
+    setPassword(user.password || "");
+    setErrorText("");
+    setNotif("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    setNamaPetugas("");
+    setNikPetugas("");
+    setNomorTelponPetugas("");
+    setRole("petugas");
+    setUsername("");
+    setPassword("");
+    setErrorText("");
+    setNotif("");
+  };
+
   const handleDeleteUser = (id: string, name: string) => {
+    if (currentUser.role !== "adminkab") {
+      alert("Hanya Admin Kabupaten yang diizinkan untuk menghapus data petugas!");
+      return;
+    }
     if (id === "admin_id" || name === "admin") {
       alert("Format login Admin Bawaan Kabupaten tidak diijinkan untuk dihapus guna menjaga kelangsungan penginstalan.");
       return;
@@ -84,20 +147,11 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
       localDB.set("users", updated);
       setNotif(`Sukses menghapus data petugas "${name}".`);
       loadUsersList();
+      if (editingUser?.id === id) {
+        handleCancelEdit();
+      }
     }
   };
-
-  if (currentUser.role !== "adminkab") {
-    return (
-      <div id="no_credential_guard" className="p-8 text-center bg-red-50 border border-red-200 rounded-2xl max-w-lg mx-auto mt-10">
-        <ShieldAlert className="w-12 h-12 text-red-600 mx-auto mb-3" />
-        <h3 className="text-base font-bold text-slate-800">Akses Ditolak (Permission Denied)</h3>
-        <p className="text-xs text-red-700 mt-2">
-          Gagal Memuat! Menu Pengaturan Pengguna ini dikunci secara ketat dan hanya dapat dilihat serta dimodifikasi oleh Admin Kabupaten (adminkab).
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div id="pengaturan_pengguna_panel" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -142,7 +196,7 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
                   </tr>
                 ) : (
                   usersList.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-55 hover:bg-slate-50/50 transition-colors">
+                    <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className={`p-1.5 rounded-lg ${user.role === "adminkab" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
@@ -161,20 +215,38 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
                       </td>
                       <td className="px-4 py-3.5">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          user.role === "adminkab" ? "bg-amber-100 text-amber-850" : "bg-emerald-100 text-emerald-850"
+                          user.role === "adminkab" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
                         }`}>
-                          {user.role === "adminkab" ? "ADMIN DIKAB" : "PETUGAS"}
+                          {user.role === "adminkab" ? "Admin Kabupaten/Owner/Adminkab" : "Petugas Lapangan (Petugas)"}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button
-                          id={`del_user_${user.id}`}
-                          type="button"
-                          onClick={() => handleDeleteUser(user.id, user.username)}
-                          className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors cursor-pointer"
-                        >
-                          <Trash className="w-4 h-4 mx-auto" />
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          {currentUser.role === "adminkab" ? (
+                            <>
+                              <button
+                                id={`edit_user_${user.id}`}
+                                type="button"
+                                onClick={() => startEditUser(user)}
+                                className="text-amber-600 hover:text-amber-800 p-1.5 rounded hover:bg-amber-50 transition-colors cursor-pointer"
+                                title="Edit Akun"
+                              >
+                                <Edit2 className="w-4 h-4 mx-auto text-amber-600" />
+                              </button>
+                              <button
+                                id={`del_user_${user.id}`}
+                                type="button"
+                                onClick={() => handleDeleteUser(user.id, user.username)}
+                                className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-55 transition-colors cursor-pointer"
+                                title="Hapus Akun"
+                              >
+                                <Trash className="w-4 h-4 mx-auto" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">No Action</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -185,12 +257,29 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
         </div>
       </div>
 
-      {/* Col 3: Add User Form */}
+      {/* Col 3: Add/Edit User Form */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 self-start">
-        <div className="flex items-center gap-2 text-emerald-800 font-bold border-b pb-3 mb-4">
-          <UserPlus className="w-5 h-5 text-emerald-600" />
-          <span className="text-sm">Tambah Petugas Baru</span>
-        </div>
+        {editingUser ? (
+          <div className="flex items-center justify-between text-amber-800 font-bold border-b pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-amber-600" />
+              <span className="text-sm">Edit Akun Petugas</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+              title="Batal Edit"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-emerald-800 font-bold border-b pb-3 mb-4">
+            <UserPlus className="w-5 h-5 text-emerald-600" />
+            <span className="text-sm">Tambah Petugas Baru</span>
+          </div>
+        )}
 
         {errorText && (
           <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded text-xs text-red-700 mb-4 flex gap-2">
@@ -255,7 +344,9 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
               className="w-full text-xs py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
             >
               <option value="petugas">Petugas Lapangan (Petugas)</option>
-              <option value="adminkab">Admin Kabupaten (adminkab)</option>
+              {currentUser.role === "adminkab" && (
+                <option value="adminkab">Admin Kabupaten/Owner/Adminkab</option>
+              )}
             </select>
           </div>
 
@@ -296,14 +387,34 @@ export default function PengaturanPengguna({ currentUser }: PengaturanPenggunaPr
             </div>
           </div>
 
-          <button
-            id="btn_admin_save_user"
-            type="submit"
-            className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
-          >
-            <Save className="w-4 h-4" />
-            Simpan Akun Petugas
-          </button>
+          {editingUser ? (
+            <div className="flex gap-2">
+              <button
+                id="btn_admin_save_user"
+                type="submit"
+                className="flex-1 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                Simpan Perubahan
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          ) : (
+            <button
+              id="btn_admin_save_user"
+              type="submit"
+              className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              Simpan Akun Petugas
+            </button>
+          )}
         </form>
       </div>
 

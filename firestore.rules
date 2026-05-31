@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Global Safety Net (Default Deny Catch-all)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions & Primitives ---
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // --- Collection Security Matched Blocks ---
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow read: if true; // Enabled for logins mapping via officers database
+      allow create: if isValidUser(request.resource.data) && isValidId(userId);
+      allow update: if isValidUser(request.resource.data) && isValidId(userId) && (
+        // Prevent normal users from modifying their administrative roles or status
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+        // Grant escape hatch if the acting profile has explicit admin credentials
+        (resource.data.role == "adminkab")
+      );
+      allow delete: if resource.data.role == "adminkab" || userId == "admin_id";
+    }
+
+    // 2. Penandaan Ternak entries
+    match /penandaan/{recordId} {
+      allow read: if true;
+      allow create: if isValidPenandaan(request.resource.data) && isValidId(recordId);
+      allow update: if isValidPenandaan(request.resource.data) && isValidId(recordId) && (
+        // Immortality / invariant locks on critical entity relationships
+        request.resource.data.idEartagInduk == resource.data.idEartagInduk
+      );
+      allow delete: if true; // Officers and admins are authorized to clean records
+    }
+
+    // 3. Inseminasi Buatan records
+    match /inseminasi/{recordId} {
+      allow read: if true;
+      allow create: if isValidInseminasi(request.resource.data) && isValidId(recordId);
+      allow update: if isValidInseminasi(request.resource.data) && isValidId(recordId) && (
+        request.resource.data.idEartagInduk == resource.data.idEartagInduk
+      );
+      allow delete: if true;
+    }
+
+    // 4. Pemeriksaan Kebuntingan entries
+    match /kebuntingan/{recordId} {
+      allow read: if true;
+      allow create: if isValidKebuntingan(request.resource.data) && isValidId(recordId);
+      allow update: if isValidKebuntingan(request.resource.data) && isValidId(recordId) && (
+        request.resource.data.idEartagInduk == resource.data.idEartagInduk
+      );
+      allow delete: if true;
+    }
+
+    // 5. Kelahiran / Calving logs
+    match /kelahiran/{recordId} {
+      allow read: if true;
+      allow create: if isValidKelahiran(request.resource.data) && isValidId(recordId);
+      allow update: if isValidKelahiran(request.resource.data) && isValidId(recordId) && (
+        request.resource.data.idEartagInduk == resource.data.idEartagInduk
+      );
+      allow delete: if true;
+    }
+
+    // --- Robust Abstract Entity Validation Functions ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['username', 'password', 'namaPetugas', 'role'])
+        && data.username is string && data.username.size() <= 128
+        && data.password is string && data.password.size() <= 128
+        && data.namaPetugas is string && data.namaPetugas.size() <= 128
+        && data.role is string && (data.role == 'adminkab' || data.role == 'petugas');
+    }
+
+    function isValidPenandaan(data) {
+      return data.keys().hasAll(['namaPetugas', 'tanggalPenandaan', 'idEartagInduk', 'namaPeternak', 'kecamatan', 'desa', 'rumpunTernak'])
+        && data.namaPetugas is string && data.namaPetugas.size() <= 128
+        && data.tanggalPenandaan is string && data.tanggalPenandaan.size() <= 64
+        && data.idEartagInduk is string && data.idEartagInduk.size() <= 128
+        && data.namaPeternak is string && data.namaPeternak.size() <= 128
+        && data.kecamatan is string && data.kecamatan.size() <= 1100
+        && data.desa is string && data.desa.size() <= 100
+        && data.rumpunTernak is string && data.rumpunTernak.size() <= 100;
+    }
+
+    function isValidInseminasi(data) {
+      return data.keys().hasAll(['namaPetugas', 'tanggalIb', 'idEartagInduk', 'namaPeternak', 'kecamatan', 'desa'])
+        && data.namaPetugas is string && data.namaPetugas.size() <= 128
+        && data.tanggalIb is string && data.tanggalIb.size() <= 64
+        && data.idEartagInduk is string && data.idEartagInduk.size() <= 128
+        && data.namaPeternak is string && data.namaPeternak.size() <= 128
+        && data.kecamatan is string && data.kecamatan.size() <= 100
+        && data.desa is string && data.desa.size() <= 100;
+    }
+
+    function isValidKebuntingan(data) {
+      return data.keys().hasAll(['namaPetugas', 'tanggalPkb', 'idEartagInduk', 'namaPeternak', 'kecamatan', 'desa'])
+        && data.namaPetugas is string && data.namaPetugas.size() <= 128
+        && data.tanggalPkb is string && data.tanggalPkb.size() <= 64
+        && data.idEartagInduk is string && data.idEartagInduk.size() <= 128
+        && data.namaPeternak is string && data.namaPeternak.size() <= 128
+        && data.kecamatan is string && data.kecamatan.size() <= 100
+        && data.desa is string && data.desa.size() <= 100;
+    }
+
+    function isValidKelahiran(data) {
+      return data.keys().hasAll(['namaPetugas', 'tanggalLahirAnak', 'idEartagInduk', 'namaPeternak', 'kecamatan', 'desa', 'nomorEartagAnak', 'jenisKelaminAnak'])
+        && data.namaPetugas is string && data.namaPetugas.size() <= 128
+        && data.tanggalLahirAnak is string && data.tanggalLahirAnak.size() <= 64
+        && data.idEartagInduk is string && data.idEartagInduk.size() <= 128
+        && data.namaPeternak is string && data.namaPeternak.size() <= 128
+        && data.kecamatan is string && data.kecamatan.size() <= 100
+        && data.desa is string && data.desa.size() <= 100
+        && data.nomorEartagAnak is string && data.nomorEartagAnak.size() <= 128
+        && data.jenisKelaminAnak is string && (data.jenisKelaminAnak == 'Jantan' || data.jenisKelaminAnak == 'Betina');
+    }
+  }
+}

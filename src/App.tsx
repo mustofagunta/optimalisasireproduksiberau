@@ -300,8 +300,8 @@ export default function App() {
             Kelola Excel Laporan
           </button>
 
-          {/* Pengaturan Pengguna - Only visible and active for owner/adminkab roles */}
-          {currentUser.role === "adminkab" && (
+          {/* Pengaturan Pengguna - Visible and active for both roles */}
+          {(currentUser.role === "adminkab" || currentUser.role === "petugas") && (
             <button
               id="tab_menu_users"
               onClick={() => setActiveMenu("users")}
@@ -325,60 +325,13 @@ export default function App() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="space-y-6"
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6"
             >
-              {/* Summary stat cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {[
-                  { 
-                    id: "stat_penandaan", 
-                    label: "Penandaan Eartag Baru", 
-                    count: penandaanList.length, 
-                    icon: <Tag className="w-5 h-5 text-emerald-800" />, 
-                    bg: "bg-emerald-50 border-emerald-100 text-emerald-900" 
-                  },
-                  { 
-                    id: "stat_ib", 
-                    label: "Inseminasi Buatan (IB)", 
-                    count: inseminasiList.length, 
-                    icon: <Disc className="w-5 h-5 text-emerald-800 animate-spin-slow" />, 
-                    bg: "bg-emerald-50 border-emerald-100 text-emerald-900" 
-                  },
-                  { 
-                    id: "stat_pkb", 
-                    label: "Pemeriksaan Kebuntingan", 
-                    count: kebuntinganList.length, 
-                    icon: <HeartPulse className="w-5 h-5 text-emerald-800" />, 
-                    bg: "bg-emerald-50 border-emerald-100 text-emerald-900" 
-                  },
-                  { 
-                    id: "stat_kelahiran", 
-                    label: "Kelahiran Pedet Baru", 
-                    count: kelahiranList.length, 
-                    icon: <Baby className="w-5 h-5 text-emerald-800" />, 
-                    bg: "bg-emerald-50 border-emerald-100 text-emerald-900" 
-                  }
-                ].map((stat) => (
-                  <div 
-                    key={stat.id} 
-                    className={`p-5 rounded-2xl border bg-white shadow-sm flex items-center justify-between hover:scale-102 transition-transform`}
-                  >
-                    <div>
-                      <p className="text-xs text-slate-500 font-semibold">{stat.label}</p>
-                      <p className="text-3xl font-extrabold text-slate-900 mt-2">{stat.count}</p>
-                    </div>
-                    <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner">
-                      {stat.icon}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Grid 2: Welcome message & fast guide */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column (Main Section): 2/3 width on desktop */}
+              <div className="lg:col-span-2 space-y-6">
                 
                 {/* Information Card */}
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 flex flex-col justify-between shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 flex flex-col justify-between shadow-sm">
                   <div>
                     <span className="px-3 py-1 bg-amber-50 rounded-full text-[10px] text-amber-800 font-bold border border-amber-200">
                       INFO DAERAH KABUPATEN BERAU
@@ -408,6 +361,109 @@ export default function App() {
                         <p className="text-[10px] text-slate-500">Setiap detik tersinkronisasi</p>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Box 3: Recent Eartag Log Preview */}
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                  <div className="bg-slate-50 px-6 py-4 border-b flex justify-between items-center">
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Log Registrasi Eartag Ternak Terbaru (5 Rekaman Terakhir)
+                    </h3>
+                    <button
+                      id="btn_view_all_penandaan"
+                      onClick={() => setActiveMenu("penandaan")}
+                      className="text-xs text-emerald-800 hover:underline font-bold transition-all cursor-pointer"
+                    >
+                      Selengkapnya &rarr;
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left text-xs text-slate-600">
+                        <thead>
+                          <tr className="text-slate-400 font-semibold border-b">
+                            <th className="py-2 px-3">Eartag Induk</th>
+                            <th className="py-2 px-3">Tanggal</th>
+                            <th className="py-2 px-3">Rumpun</th>
+                            <th className="py-2 px-3">Peternak</th>
+                            <th className="py-2 px-3">Geografis (Kecamatan/Desa)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y text-slate-500">
+                          {penandaanList.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="py-6 text-center italic text-slate-400">
+                                Belum ada eartag baru yang pasang terdaftar.
+                              </td>
+                            </tr>
+                          ) : (
+                            penandaanList.slice(0, 5).map((rec) => (
+                              <tr key={rec.id} className="hover:bg-slate-50">
+                                <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{rec.idEartagInduk}</td>
+                                <td className="py-2.5 px-3">{rec.tanggalPenandaan}</td>
+                                <td className="py-2.5 px-3 font-medium text-emerald-850">{rec.rumpunTernak}</td>
+                                <td className="py-2.5 px-3">{rec.namaPeternak}</td>
+                                <td className="py-2.5 px-3 text-slate-400">{rec.kecamatan} • {rec.desa}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column (Sidebar): 1/3 width on desktop, moves to bottom on mobile */}
+              <div className="space-y-6">
+                
+                {/* Summary stat cards stacked vertically */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+                  <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-widest border-b pb-2.5 mb-4">
+                    Statistik Capaian Berau
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      { 
+                        id: "stat_penandaan", 
+                        label: "Penandaan Eartag Baru", 
+                        count: penandaanList.length, 
+                        icon: <Tag className="w-5 h-5 text-emerald-800" />, 
+                      },
+                      { 
+                        id: "stat_ib", 
+                        label: "Inseminasi Buatan (IB)", 
+                        count: inseminasiList.length, 
+                        icon: <Disc className="w-5 h-5 text-emerald-800 animate-spin-slow" />, 
+                      },
+                      { 
+                        id: "stat_pkb", 
+                        label: "Pemeriksaan Kebuntingan", 
+                        count: kebuntinganList.length, 
+                        icon: <HeartPulse className="w-5 h-5 text-emerald-800" />, 
+                      },
+                      { 
+                        id: "stat_kelahiran", 
+                        label: "Kelahiran Pedet Baru", 
+                        count: kelahiranList.length, 
+                        icon: <Baby className="w-5 h-5 text-emerald-800" />, 
+                      }
+                    ].map((stat) => (
+                      <div 
+                        key={stat.id} 
+                        className="p-4 rounded-xl border border-slate-50 bg-slate-50/50 flex items-center justify-between hover:border-emerald-300 transition-colors"
+                      >
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{stat.label}</p>
+                          <p className="text-2xl font-black text-slate-900 mt-1">{stat.count}</p>
+                        </div>
+                        <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center border border-slate-100 shrink-0 shadow-sm">
+                          {stat.icon}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -451,57 +507,9 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+
               </div>
 
-              {/* Box 3: Recent Eartag Log Preview */}
-              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                <div className="bg-slate-50 px-6 py-4 border-b flex justify-between items-center">
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Log Registrasi Eartag Ternak Terbaru (5 Rekaman Terakhir)
-                  </h3>
-                  <button
-                    id="btn_view_all_penandaan"
-                    onClick={() => setActiveMenu("penandaan")}
-                    className="text-xs text-emerald-800 hover:underline font-bold transition-all cursor-pointer"
-                  >
-                    Selengkapnya &rarr;
-                  </button>
-                </div>
-                <div className="p-4">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-xs text-slate-600">
-                      <thead>
-                        <tr className="text-slate-400 font-semibold border-b">
-                          <th className="py-2 px-3">Eartag Induk</th>
-                          <th className="py-2 px-3">Tanggal</th>
-                          <th className="py-2 px-3">Rumpun</th>
-                          <th className="py-2 px-3">Peternak</th>
-                          <th className="py-2 px-3">Geografis (Kecamatan/Desa)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y text-slate-500">
-                        {penandaanList.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="py-6 text-center italic text-slate-400">
-                              Belum ada eartag baru yang pasang terdaftar.
-                            </td>
-                          </tr>
-                        ) : (
-                          penandaanList.slice(0, 5).map((rec) => (
-                            <tr key={rec.id} className="hover:bg-slate-50">
-                              <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{rec.idEartagInduk}</td>
-                              <td className="py-2.5 px-3">{rec.tanggalPenandaan}</td>
-                              <td className="py-2.5 px-3 font-medium text-emerald-850">{rec.rumpunTernak}</td>
-                              <td className="py-2.5 px-3">{rec.namaPeternak}</td>
-                              <td className="py-2.5 px-3 text-slate-400">{rec.kecamatan} • {rec.desa}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
             </motion.div>
           )}
 
@@ -590,8 +598,8 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* Pengaturan Pengguna: accessible to Owner/adminkab role only */}
-          {activeMenu === "users" && currentUser.role === "adminkab" && (
+          {/* Pengaturan Pengguna: accessible to logged in users */}
+          {activeMenu === "users" && (
             <motion.div
               key="users_view"
               initial={{ opacity: 0 }}
