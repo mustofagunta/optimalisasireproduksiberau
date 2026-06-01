@@ -321,21 +321,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             <p className="text-center text-xs text-slate-400 mb-3 font-medium uppercase tracking-wider">
               Uji Coba Cepat (Fast Login)
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                id="quick_login_admin"
-                type="button"
-                onClick={() => handleFastLogin("adminkab")}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-orange-50 border border-orange-100 text-orange-950 hover:bg-orange-100 transition-colors cursor-pointer text-left"
-              >
-                <span className="text-[11px] font-bold">Admin Kab</span>
-                <span className="text-[9px] text-orange-600 font-mono">admin / password</span>
-              </button>
+            <div className="flex justify-center">
               <button
                 id="quick_login_petugas"
                 type="button"
                 onClick={() => handleFastLogin("petugas")}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-950 hover:bg-emerald-100 transition-colors cursor-pointer text-left"
+                className="w-full sm:w-2/3 flex flex-col items-center justify-center p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-950 hover:bg-emerald-100 transition-colors cursor-pointer text-center"
               >
                 <span className="text-[11px] font-bold">Petugas</span>
                 <span className="text-[9px] text-emerald-600 font-mono">petugas / password</span>

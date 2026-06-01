@@ -22,6 +22,7 @@ export default function PengaturanPengguna({ currentUser, onCurrentUserUpdate }:
 
   const [notif, setNotif] = useState("");
   const [errorText, setErrorText] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const loadUsersList = () => {
     const list = localDB.get<RegisteredUser>("users", []);
@@ -190,14 +191,12 @@ export default function PengaturanPengguna({ currentUser, onCurrentUserUpdate }:
       return;
     }
 
-    if (confirm(`Apakah Anda yakin ingin menghapus petugas "${name}" dari sistem?`)) {
-      const updated = usersList.filter((usr) => usr.id !== id);
-      localDB.set("users", updated);
-      setNotif(`Sukses menghapus data petugas "${name}".`);
-      loadUsersList();
-      if (editingUser?.id === id) {
-        handleCancelEdit();
-      }
+    const updated = usersList.filter((usr) => usr.id !== id);
+    localDB.set("users", updated);
+    setNotif(`Sukses menghapus data petugas "${name}".`);
+    loadUsersList();
+    if (editingUser?.id === id) {
+      handleCancelEdit();
     }
   };
 
@@ -281,15 +280,37 @@ export default function PengaturanPengguna({ currentUser, onCurrentUserUpdate }:
                               >
                                 <Edit2 className="w-4 h-4 mx-auto text-amber-600" />
                               </button>
-                              <button
-                                id={`del_user_${user.id}`}
-                                type="button"
-                                onClick={() => handleDeleteUser(user.id, user.username)}
-                                className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-55 transition-colors cursor-pointer"
-                                title="Hapus Akun"
-                              >
-                                <Trash className="w-4 h-4 mx-auto" />
-                              </button>
+                              {deleteConfirmId === user.id ? (
+                                <div className="flex items-center justify-center gap-1.5 font-sans min-w-[100px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleDeleteUser(user.id, user.username);
+                                      setDeleteConfirmId(null);
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold py-1 px-2 rounded-lg shadow-sm cursor-pointer transition-all"
+                                  >
+                                    Yakin
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] font-semibold py-1 px-1.5 rounded-lg cursor-pointer transition-all"
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  id={`del_user_${user.id}`}
+                                  type="button"
+                                  onClick={() => setDeleteConfirmId(user.id)}
+                                  className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Hapus Akun"
+                                >
+                                  <Trash className="w-4 h-4 mx-auto" />
+                                </button>
+                              )}
                             </>
                           ) : (
                             <span className="text-[10px] text-slate-400 italic">No Action</span>

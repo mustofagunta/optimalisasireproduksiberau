@@ -12,6 +12,7 @@ interface InseminasiModuleProps {
 export default function InseminasiModule({ currentUser, records, onAddRecord, onDeleteRecord }: InseminasiModuleProps) {
   const [activeTab, setActiveTab] = useState<"form" | "data">("form");
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Form states
   const [tanggalIb, setTanggalIb] = useState(new Date().toISOString().split("T")[0]);
@@ -526,17 +527,36 @@ export default function InseminasiModule({ currentUser, records, onAddRecord, on
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm("Hapus data tindakan IB ini?")) {
-                              onDeleteRecord(rec.id);
-                            }
-                          }}
-                          className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors cursor-pointer"
-                        >
-                          <Trash className="w-4 h-4 mx-auto" />
-                        </button>
+                        {deleteConfirmId === rec.id ? (
+                          <div className="flex items-center justify-center gap-1.5 min-w-[100px]">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteRecord(rec.id);
+                                setDeleteConfirmId(null);
+                              }}
+                              className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold py-1 px-2.5 rounded-lg shadow-sm transition-all cursor-pointer"
+                            >
+                              Yakin
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="bg-slate-200 hover:bg-slate-300 text-slate-600 text-[10px] font-semibold py-1 px-2 rounded-lg transition-all cursor-pointer"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(rec.id)}
+                            className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Hapus"
+                          >
+                            <Trash className="w-4 h-4 mx-auto" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
