@@ -22,6 +22,44 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Auto seed Adminkabupaten admin and default users
+  React.useEffect(() => {
+    const existingUsers = localDB.get<any>("users", []);
+    
+    // Check and seed default admin/petugas if lists are completely empty
+    if (existingUsers.length === 0) {
+      const defaultAdmin = {
+        id: "admin_id",
+        username: "admin",
+        password: "password",
+        namaPetugas: "Admin Dinas Berau",
+        nikPetugas: "6403010101990001",
+        nomorTelponPetugas: "08112233445",
+        role: "adminkab" as const,
+        createdAt: new Date().toISOString()
+      };
+      localDB.insertOne<any>("users", defaultAdmin);
+    }
+
+    // Always ensure requested "Adminkabupaten" exists
+    const hasAdminKabupaten = existingUsers.some(
+      (u: any) => u.username.toLowerCase() === "adminkabupaten"
+    );
+    if (!hasAdminKabupaten) {
+      const adminKabupatenUser = {
+        id: "adminkabupaten_id",
+        username: "Adminkabupaten",
+        password: "admin 123",
+        namaPetugas: "Admin Kabupaten Berau",
+        nikPetugas: "6403010101990001",
+        nomorTelponPetugas: "08112233445",
+        role: "adminkab" as const,
+        createdAt: new Date().toISOString()
+      };
+      localDB.insertOne<any>("users", adminKabupatenUser);
+    }
+  }, []);
+
   // Handler for fast-login
   const handleFastLogin = (chosenRole: "adminkab" | "petugas") => {
     // Check if these match preset credentials, otherwise pre-seed them
@@ -72,6 +110,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       };
       existingUsers.push(defaultAdmin);
       localDB.insertOne<any>("users", defaultAdmin);
+    }
+
+    // Always ensure requested "Adminkabupaten" exists
+    const hasAdminKabupaten = existingUsers.some(
+      (u: any) => u.username.toLowerCase() === "adminkabupaten"
+    );
+    if (!hasAdminKabupaten) {
+      const adminKabupatenUser = {
+        id: "adminkabupaten_id",
+        username: "Adminkabupaten",
+        password: "admin 123",
+        namaPetugas: "Admin Kabupaten Berau",
+        nikPetugas: "6403010101990001",
+        nomorTelponPetugas: "08112233445",
+        role: "adminkab",
+        createdAt: new Date().toISOString()
+      };
+      existingUsers.push(adminKabupatenUser);
+      localDB.insertOne<any>("users", adminKabupatenUser);
     }
 
     if (isRegister) {
@@ -260,6 +317,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     className="w-full text-sm py-2 px-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all bg-white"
                   >
                     <option value="petugas">Petugas Lapangan (Petugas)</option>
+                    <option value="adminkab">Admin Kabupaten/Owner/Adminkab</option>
                   </select>
                 </div>
               </motion.div>
